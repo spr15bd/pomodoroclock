@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+	<style>
+		body {
+  background-color: rgb(120,240,220);
+}
+.title {
+  font-family: tahoma;
+  font-size: 40px;
+  height: 60px;
+}
+.subtitle {
+  font-family: tahoma;
+  font-size: 24px;
+  height:100px;
+}
+h1 {
+  text-align: center;
+}
+#controls {
+  width:50%;
+  text-align:center;
+  margin-left:auto;
+  margin-right:auto;
+  padding-bottom:6%;
+}
+#session {
+  float:left;
+  width:30%;
+}
+#reset {
+  float:left;
+  width:40%;
+}
+#break {
+  float:left;
+  width:30%;
+}
+#break-button-section, #session-button-section, #reset-button-section {
+  font-size:1.4em;
+}
+.button {
+  text-decoration:none;
+  color:black;
+}
+#start_stop {
+  text-align:center;
+  text-decoration:none;
+  display:block;
+  height:160px;
+  width:200px;
+  border-radius:20%;
+  color:white;
+  background-color: black;
+  margin-left:auto;
+  margin-right:auto;
+}
+#timer-label {
+  color:white;
+  font-size:30px;
+  padding-top:15%;
+  padding-bottom:15%;
+}
+
+	</style>
+	<head>
+		<script defer src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css">
+		<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+		<script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+		<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+		
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type='text/babel'>
+			function Countdown(props) {
+  return (
+		<div>
+      <a id="start_stop" href="#" onClick={props.startTimer}>
+        <div id="timer-label">{props.sessionType}</div>
+        <div id="time-left">{props.minutes<10?"0"+props.minutes:props.minutes}:{props.seconds<10?"0"+props.seconds:props.seconds}</div>
+      </a>
+      <audio id="beep" src="http://www.soundjay.com/misc/sounds/bell-ringing-01.mp3">
+      </audio>
+    </div>
+	);
+}
+
+function BreakLengthControl(props){
+  return (
+    <div id="break">
+      <div id="break-label">BREAK LENGTH</div>
+      <div id="break-button-section">
+              <a href="#" className="button" id="break-decrement" onClick={() => props.updateBreakLength(-1)}>-</a>
+              <label id="break-length">{props.breakLength}</label>
+              <a href="#" className="button" id="break-increment" onClick={() => props.updateBreakLength(1)}>+</a>
+            </div>
+    </div>
+  );
+}
+function ResetControl(props){
+  return (
+    <div id="reset">
+      <div id="reset-label">RESET</div>
+      <div id="reset-button-section">
+              <a href="#" className="button" onClick={props.handleReset}><i className="fas fa-sync-alt"></i></a>
+            </div>
+    </div>
+  );
+}
+function SessionLengthControl(props){
+  return (
+    <div id="session">
+      <div id="session-label">SESSION LENGTH</div>
+      <div id="session-button-section">
+              <a href="#" className="button" id="session-decrement" onClick={() => props.updateSessionLength(-1)}>-</a>
+              <label id="session-length">{props.sessionLength}</label>
+              <a href="#" className="button" id="session-increment" onClick={() => props.updateSessionLength(1)}>+</a>
+            </div>
+    </div>
+  );
+}
+class Main extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+			minutes:25,  
+      seconds:0,       
+      breakLength:5,   
+      sessionLength:25,
+      sessionType:"Session",
+      paused:true
+    };
+    this.timerUp=null;
+    this.sessionTimeRemainingInMillis = this.state.sessionLength*60000;
+    this.breakTimeRemainingInMillis = this.state.breakLength*60000;
+    this.timeRemainingInMillis=this.sessionTimeRemainingInMillis;
+    this.clockInterval = null;
+    this.handleReset = this.handleReset.bind(this);
+    this.startTimer = this.startTimer.bind(this);
+    this.updateTimer = this.updateTimer.bind(this);
+    this.updateBreakLength = this.updateBreakLength.bind(this);
+    this.updateSessionLength = this.updateSessionLength.bind(this);
+  }
+  
+  handleReset() {
+    this.setState({
+      minutes:25,
+      seconds:0,
+      breakLength:5,
+      sessionLength:25,
+      sessionType:"Session",
+      paused:true
+    }, () => {
+      let x = document.getElementById("beep");
+	    x.pause();
+      x.currentTime=0;
+      clearInterval(this.clockInterval);
+      this.clockInterval=null;
+      this.timerUp=null;
+      this.clockInterval=null;
+      this.sessionTimeRemainingInMillis = this.state.sessionLength*60000;
+      this.breakTimeRemainingInMillis = this.state.breakLength*60000;
+      this.timeRemainingInMillis=this.sessionTimeRemainingInMillis;
+    });
+  }
+  updateBreakLength(amount) {
+    let length=this.state.breakLength;
+    if (amount<0&&length>1) {
+      this.setState({
+        breakLength:length+amount
+      }, () => {
+        this.breakTimeRemainingInMillis=this.state.breakLength*60000;
+        this.timeRemainingInMillis=this.state.sessionType=="Session"?this.sessionTimeRemainingInMillis:this.breakTimeRemainingInMillis;
+      });
+    } else if ((amount>0&&length<60)) {
+      this.setState({
+        breakLength:length+amount
+      }, () => {
+        this.breakTimeRemainingInMillis=this.state.breakLength*60000;
+        this.timeRemainingInMillis=this.state.sessionType=="Session"?this.sessionTimeRemainingInMillis:this.breakTimeRemainingInMillis;
+      });
+    }
+  }
+  updateSessionLength(amount) {
+    let length=this.state.sessionLength;
+    if ((amount<0&&length>1)) {
+      this.setState({
+        sessionLength:length+amount
+      }, () => {
+        this.sessionTimeRemainingInMillis=this.state.sessionLength*60000;
+        this.timeRemainingInMillis=this.state.sessionType=="Session"?this.sessionTimeRemainingInMillis:this.breakTimeRemainingInMillis;
+      });
+    } else if ((amount>0&&length<60)) {
+      this.setState({
+        sessionLength:length+amount
+      }, () => {
+        this.sessionTimeRemainingInMillis=this.state.sessionLength*60000;});
+        this.timeRemainingInMillis=this.state.sessionType=="Session"?this.sessionTimeRemainingInMillis:this.breakTimeRemainingInMillis;
+    }
+  }
+  startTimer() {
+    this.setState({
+      paused:!this.state.paused
+    }, this.updateTimer);
+  }
+  updateTimer() {
+    if (!this.state.paused) {
+      this.timerUp=new Date().getTime()+this.timeRemainingInMillis;
+      this.clockInterval = setInterval(() => {
+        this.timeRemainingInMillis=this.timerUp-new Date().getTime();
+        if (this.timeRemainingInMillis<0) {
+          this.setState({
+            sessionType:this.state.sessionType=="Session"?"Break":"Session",
+            paused:true
+          }, () => {
+            let x = document.getElementById("beep");
+            x.play();
+            this.timeRemainingInMillis=this.state.sessionType=="Session"?this.sessionTimeRemainingInMillis:this.breakTimeRemainingInMillis;
+            clearInterval(this.clockInterval);
+            this.clockInterval=null;
+            this.timerUp=null;
+            this.startTimer();
+          });
+        }
+        this.setState({
+          minutes:Math.floor(this.timeRemainingInMillis/60000),
+          seconds:Math.floor((this.timeRemainingInMillis%60000)/1000)
+        });
+      },1000);
+    } else {
+      clearInterval(this.clockInterval);
+    }
+  }
+  render() {
+    return (
+      <div>
+     	  <div className="container-fluid">
+          <div className="title"><h1>FreeCodeCamp</h1></div>
+          <div className="subtitle"><h1>Pomodoro clock</h1></div>
+          <div id="controls">
+            <BreakLengthControl breakLength={this.state.breakLength} updateBreakLength={this.updateBreakLength}/>
+            <ResetControl handleReset={this.handleReset}/>
+            <SessionLengthControl sessionLength={this.state.sessionLength} updateSessionLength={this.updateSessionLength}/>
+          </div>
+          <Countdown startTimer={this.startTimer} sessionType={this.state.sessionType} minutes={this.state.minutes} seconds={this.state.seconds}/>
+        </div>
+      </div>
+    );
+  }
+}
+ReactDOM.render(
+  <Main />,
+  document.getElementById('root')
+);
+			
+
+
+		</script>
+	</body>
+</html>
